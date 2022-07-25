@@ -2,12 +2,13 @@
 
 #-------------------------------------------------------------------------------
 
-my $freedns_afraid_org_token = "<your afraid-dyndns TOKEN>";
-my $email_addreses="<e-mail 1>,<e-mail 2>";
-my $ipfile    = '/var/log/freedns-afraid-org-IP.txt';
-my $check_ip_bot = "bot.whatismyipaddress.com";
-my $check_period = 300;
-my $use_curl_to_get_ip = 1;
+my $freedns_afraid_org_token = "<token from afraid site>";
+my $email_addreses           = "<email address>";
+my $ipfile                   = '/var/log/afraid-dyndns-updater.conf.log';
+# my $check_ip_cmd             = qq(curl -ks "bot.whatismyipaddress.com");
+my $check_ip_cmd             = qq(curl https://api.myip.com 2>/dev/null | python3 -c "import sys, json; print(json.load(sys.stdin)['ip'])");
+my $check_period             = 300;
+my $use_curl_to_get_ip       = 1;
 
 
 #-------------------------------------------------------------------------------
@@ -20,7 +21,7 @@ my $use_curl_to_get_ip = 1;
 
 use Sys::Hostname;
 
-print "\nFreeDNS.Afraid.org Dynamic IP updater v1.0\n(c)Piotr Oniszczuk\n\n";
+print "\nFreeDNS.Afraid.org Dynamic IP updater v1.0\n\n";
 print "  -Check period : ".$check_period."sec\n";
 print "  -IP log file  : ".$ipfile."\n";
 
@@ -36,7 +37,7 @@ while (1) {
     }
 
     if ($use_curl_to_get_ip) {
-        $ip = `curl -ks $check_ip_bot`;
+        $ip = `$check_ip_cmd`;
     }
     else {
         ($name,$aliases,$addrtype,$length,@addrs) = gethostbyname(Sys::Hostname::ghname());
@@ -67,7 +68,7 @@ while (1) {
             close S;
 
             print "Sending notify E-Mails...\n";
-            system("printf \"Home Server has new Internet public IP address!\n\nOld IP address : $prev_ip\nNew IP address : $ip\n\" | mail -v -s \"Home Server: New Internet Public IP address\" $email_addreses 2>&1");
+            system(qq(/usr/local/bin/send-email.sh "Home Server has new public IP:$ip (old was:$prev_ip)"));
         }
         else {
             print "ERROR: Can't get current IP from $check_ip_bot\n";
